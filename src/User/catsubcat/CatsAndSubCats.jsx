@@ -4,36 +4,47 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ProductCard from '../../ProductCard/ProductCard';
 import { motion } from 'framer-motion';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useCart } from '../../components/CartContext';
+import baseUrl from '../../baseUrl/baseUrl';
 
 function CatsAndSubCats() {
   const { cat, subcategory } = useParams();
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [cart, setCart] = useState({ products: [] });
   const navigate = useNavigate();
+  const { addToCart } = useCart();
+  // Removed the unused loading state
 
   useEffect(() => {
     axios
-      .get(`http://localhost:8080/api/products/catAndSubCat/${cat}/${subcategory}`)
+      .get(`${baseUrl}/products/catAndSubCat/${cat}/${subcategory}`)
       .then((response) => setProducts(response.data))
       .catch((error) => console.error("Error fetching products:", error));
   }, [cat, subcategory]);
 
   const handleAddToCart = async (product) => {
+    console.log("Add to cart clicked for:", product);
+    const userEmail = localStorage.getItem('email');
+    console.log("User email:", userEmail);
+
+    if (!userEmail) {
+      toast.error('Please login to add items to cart');
+      navigate('/login');
+      return;
+    }
+
     try {
-      const updatedProducts = [...cart.products, product];
-      const updatedCart = { ...cart, products: updatedProducts };
-
-      const response = await axios.post(
-        'http://localhost:8080/api/cart/createOrUpdateCart',
-        updatedCart
-      );
-
-      setCart(response.data || updatedCart);
-      alert(`${product.name} added to cart!`);
+      // Use CartContext's addToCart function for consistency
+      await addToCart(product, 1);
+      console.log("Successfully added to cart via CartContext");
     } catch (error) {
       console.error('Error updating cart:', error);
-      alert('Failed to add product to cart. Please try again.');
+      toast.error('Failed to add product to cart', {
+        position: "top-right",
+        autoClose: 3000,
+      });
     }
   };
 

@@ -1,21 +1,20 @@
 import axios from 'axios';
+import baseUrl from './baseUrl';
 
-const API_BASE = 'http://localhost:8080/api/cart';
+export const getCartByUserEmail = (email) =>
+  axios.get(`${baseUrl}/cart/getCartByUserEmail/${email}`);
 
-export const getCartByUser = (userId) =>
-  axios.get(`${API_BASE}/getCartByUser/${userId}`);
+export const createOrUpdateCart = (cart) =>
+  axios.post(`${baseUrl}/cart/createOrUpdateCart`, cart);
 
-export const getAllCartItems = (userId) =>
-  axios.get(`${API_BASE}/${userId}/items`);
+export const getAllCartItems = (email) =>
+  axios.get(`${baseUrl}/cart/${email}/items`);
 
-export const addItemToCart = (userId, item) =>
-  axios.post(`${API_BASE}/${userId}/items`, item);
+export const addItemToCart = (email, item) =>
+  axios.post(`${baseUrl}/cart/${email}/items`, item);
 
-export const updateItemQuantity = (userId, itemId, quantity) =>
-  axios.put(`${API_BASE}/${userId}/items/${itemId}?quantity=${quantity}`);
+export const removeItemFromCart = (email, itemId) =>
+  axios.delete(`${baseUrl}/cart/${email}/items/${itemId}`);
 
-export const removeItemFromCart = (userId, itemId) =>
-  axios.delete(`${API_BASE}/${userId}/items/${itemId}`);
-
-export const clearCart = (userId) =>
-  axios.delete(`${API_BASE}/${userId}/clear`);
+export const clearCart = (email) =>
+  axios.delete(`${baseUrl}/cart/clearByEmail/${email}`);

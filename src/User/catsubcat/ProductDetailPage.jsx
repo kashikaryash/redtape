@@ -1,19 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useCart } from '../../components/CartContext';
+import { toast } from 'react-toastify';
 
 function ProductDetailPage() {
   const { modelNo } = useParams();
   const [product, setProduct] = useState(null);
   const [mainImage, setMainImage] = useState('');
-  const { incrementCart } = useCart();
-  const userId = 1; // TODO: Replace with actual logged-in user logic
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   useEffect(() => {
     axios
-      .get(`http://localhost:8080/api/products/model/${modelNo}`)
+      .get(`/api/products/model/${modelNo}`)
       .then((res) => {
         setProduct(res.data);
         setMainImage(res.data.img1);
@@ -22,16 +23,37 @@ function ProductDetailPage() {
   }, [modelNo]);
 
   const handleAddToCart = async () => {
-    const item = {
-      modelNo: product.modelNo,
-      quantity: 1,
-    };
+    const userEmail = localStorage.getItem('email');
+
+    if (!userEmail) {
+      toast.error('Please login to add items to cart');
+      navigate('/login');
+      return;
+    }
+
     try {
-      await axios.post(`http://localhost:8080/api/cart/${userId}/items`, item);
-      incrementCart();
-      alert('Added to cart!');
+      await addToCart(product, 1); // Using CartContext
     } catch (err) {
       console.error("Add to cart failed:", err);
+      toast.error('Failed to add to cart');
+    }
+  };
+
+  const handleBuyNow = async () => {
+    const userEmail = localStorage.getItem('email');
+
+    if (!userEmail) {
+      toast.error('Please login to proceed');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      await addToCart(product, 1); // Using CartContext
+      navigate('/checkout');
+    } catch (err) {
+      console.error("Buy now failed:", err);
+      toast.error('Failed to process your request');
     }
   };
 
@@ -69,15 +91,24 @@ function ProductDetailPage() {
             <p className="text-muted mb-1"><strong>Brand:</strong> {product.brand}</p>
             <p className="text-muted mb-1"><strong>Color:</strong> {product.color}</p>
             <h4 className="text-danger mt-3 mb-2">
-              ₹{product.price}{' '}
-              <small className="text-muted text-decoration-line-through"></small>
+              ₹{product.price}
             </h4>
-            
+
             <p className="text-secondary mb-4">{product.description}</p>
 
             <div className="d-flex flex-wrap gap-3 mb-4">
-              <button className="btn btn-danger px-4">Buy It Now</button>
-              <button className="btn btn-outline-dark px-4" onClick={handleAddToCart}>Add to Cart</button>
+              <button 
+                className="btn btn-success btn-lg ms-2" 
+                onClick={handleBuyNow}
+              >
+                Buy Now
+              </button>
+              <button 
+                className="btn btn-danger px-4" 
+                onClick={handleAddToCart}
+              >
+                Add to Cart
+              </button>
             </div>
 
             <div className="d-flex flex-wrap align-items-center gap-2">

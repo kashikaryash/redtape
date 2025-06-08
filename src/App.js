@@ -19,6 +19,10 @@ import CartPage from './components/CartPage.jsx';
 import ContactUs from './ContactUs/ContactUs.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import CategoryNavbar from './NavBar/CategoryNavbar.jsx';
+import { ToastProvider } from './components/ToastManager.jsx';
+import BackendTest from './components/BackendTest.jsx';
+import CartTest from './components/CartTest.jsx';
+import ForgotPassword from './LoginSignup/ForgotPassword.jsx';
 
 function App() {
   const { mainNavRef, isMainNavVisible } = useScrollNavbar();
@@ -27,6 +31,7 @@ function App() {
     <div className="App">
       <CartProvider>
         <Router>
+          <ToastProvider>
           {!isMainNavVisible && (
             <>
               <TopNavbar />
@@ -55,6 +60,8 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/home" element={<Home />} />
+             <Route path="/forgot-password" element={<ForgotPassword />} />
+
             <Route path="/allProducts" element={<AllProducts />} />
             <Route path="/cat/:cat/:subcategory" element={<CatsAndSubCats />} />
 
@@ -93,7 +100,10 @@ function App() {
             <Route path="/products/:modelNo" element={<ProductDetailPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/contactUs" element={<ContactUs />} />
+            <Route path="/test" element={<BackendTest />} />
+            <Route path="/cart-test" element={<CartTest />} />
           </Routes>
+          </ToastProvider>
         </Router>
       </CartProvider>
     </div>

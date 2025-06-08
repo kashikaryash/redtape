@@ -11,14 +11,13 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  // Check if user is already logged in
+  // ✅ Redirect only if token exists (indicates valid login)
   useEffect(() => {
-    const userEmail = localStorage.getItem('email');
+    const token = localStorage.getItem('token');
     const userRole = localStorage.getItem('role');
 
-    if (userEmail) {
-      // User is already logged in, redirect based on role
-      if (userRole?.toUpperCase() === 'ADMIN') {
+    if (token && userRole) {
+      if (userRole.toUpperCase() === 'ADMIN') {
         navigate('/adminHome', { replace: true });
       } else {
         navigate('/home', { replace: true });
@@ -45,22 +44,19 @@ export default function LoginPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const formData = {
-      email,
-      password,
-    };
-
     try {
-      const res = await axios.post(`${baseUrl}/users/login`, formData);
+      const res = await axios.post(`${baseUrl}/users/login`, { email, password });
+
       if (res.status === 200) {
         showToast('success', 'Logged in successfully!');
 
-        // Store email and role in localStorage
+        // ✅ Store values in localStorage
         localStorage.setItem('email', res.data.email);
         localStorage.setItem('role', res.data.role);
+        localStorage.setItem('token', res.data.token || 'dummy_token');
 
-        console.log('Role:', res.data.role);
-        console.log('Role uppercase:', res.data.role.toUpperCase());
+        // Trigger custom event to notify CartContext of user login
+        window.dispatchEvent(new CustomEvent('userChanged', { detail: { email: res.data.email } }));
 
         setTimeout(() => {
           if (res.data.role.toUpperCase() === 'ADMIN') {
@@ -85,7 +81,7 @@ export default function LoginPage() {
         <div className="row shadow-lg rounded-4 overflow-hidden w-100" style={{ maxWidth: '1000px' }}>
           {/* Left Side */}
           <div className="col-md-6 d-flex bg-white flex-column justify-content-center align-items-center text-white p-5 position-relative">
-            <img src={'https://redtape.com/cdn/shop/files/1.png?v=1741350299'} alt="RedTape Shoe" className="img-fluid mb-3" style={{ maxWidth: '200px' }} />
+            <img src="https://redtape.com/cdn/shop/files/1.png?v=1741350299" alt="RedTape Shoe" className="img-fluid mb-3" style={{ maxWidth: '200px' }} />
             <p className="text-center fw-bold text-black mb-4">
               Don’t have an account? <br /> Register now and join the RedTape community.
             </p>
@@ -97,7 +93,7 @@ export default function LoginPage() {
           {/* Right Side */}
           <div className="col-md-6 bg-white p-5 d-flex flex-column justify-content-center">
             <div className="text-center mb-4">
-              <img src={'RedTapeLogo.png'} alt="RedTape Logo" style={{ maxWidth: '120px' }} />
+              <img src="RedTapeLogo.png" alt="RedTape Logo" style={{ maxWidth: '120px' }} />
             </div>
 
             <form onSubmit={handleLogin}>
@@ -153,7 +149,6 @@ export default function LoginPage() {
 
       <Footer />
 
-      {/* SweetAlert Custom Styling */}
       <style>{`
         .swal2-popup.small-swal {
           font-size: 0.9rem !important;

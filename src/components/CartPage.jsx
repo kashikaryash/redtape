@@ -1,68 +1,121 @@
-import React, { useEffect, useState } from 'react';
-import {
-  getAllCartItems,
-  removeItemFromCart,
-  clearCart,
-} from '../baseUrl/CartAPI'; // adjust path
-
-const userId = 1; // Replace with real user ID (e.g., from auth)
+import React, { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useCart } from './CartContext';
+import { useNavigate } from 'react-router-dom';
 
 function CartPage() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { cartItems, loading, refreshCart, removeFromCart, clearCart, cartTotal } = useCart();
+  const navigate = useNavigate();
+  const userEmail = localStorage.getItem('email');
 
-  const fetchItems = async () => {
-    setLoading(true);
+  useEffect(() => {
+    if (!userEmail) {
+      navigate('/login');
+      return;
+    }
+    if (refreshCart) {
+      refreshCart();
+    }
+  }, [userEmail, navigate, refreshCart]);
+
+  const handleRemove = async (item) => {
     try {
-      const res = await getAllCartItems(userId);
-      setItems(res.data);
-    } catch (err) {
-      console.error('Error fetching cart items:', err);
-    } finally {
-      setLoading(false);
+      await removeFromCart(item.product.modelNo); // Assuming removeFromCart takes modelNo
+      toast.info('Item removed from cart');
+      refreshCart();
+      // updateCartCount will be handled inside context
+    } catch (error) {
+      toast.error('Failed to remove item');
     }
   };
 
-  const handleRemove = async (itemId) => {
-    await removeItemFromCart(userId, itemId);
-    fetchItems();
-  };
-
   const handleClear = async () => {
-    await clearCart(userId);
-    fetchItems();
+    try {
+      await clearCart();
+      toast.info('Cart cleared');
+      refreshCart();
+    } catch (error) {
+      toast.error('Failed to clear cart');
+    }
   };
 
-  useEffect(() => {
-    fetchItems();
-  }, []);
+  const handleCheckout = () => {
+    if (cartItems.length === 0) {
+      toast.warning('Your cart is empty');
+      return;
+    }
+    navigate('/checkout');
+  };
 
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
-  if (loading) return <div className="text-center mt-5">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="container mt-5 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
-  if (items.length === 0) return <div className="container mt-5 text-center">Your cart is empty.</div>;
+  if (cartItems.length === 0) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="container mt-5 text-center">
+        <h3>Your cart is empty</h3>
+        <button className="btn btn-primary mt-3" onClick={() => navigate('/allProducts')}>
+          Continue Shopping
+        </button>
+        <ToastContainer />
+      </motion.div>
+    );
+  }
 
   return (
-    <div className="container mt-5">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="container mt-5">
       <h2>Your Cart</h2>
-      <ul className="list-group mb-3">
-        {items.map((item) => (
-          <li key={item.id} className="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <h5>{item.product.name}</h5>
-              <p className="mb-0">₹{item.product.price} x {item.quantity}</p>
+      <AnimatePresence>
+        {cartItems.map((item) => (
+          <motion.div
+            key={item.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, x: -100 }}
+            className="card mb-3"
+          >
+            <div className="card-body d-flex justify-content-between align-items-center">
+              <div className="d-flex align-items-center">
+                <img src={item.product.img1} alt={item.product.name} style={{ width: '80px', marginRight: '20px' }} />
+                <div>
+                  <h5>{item.product.name}</h5>
+                  <p className="mb-0">
+                    ₹{item.product.price} x {item.quantity}
+                  </p>
+                </div>
+              </div>
+              <button className="btn btn-danger btn-sm" onClick={() => handleRemove(item)}>
+                Remove
+              </button>
             </div>
-            <img src={item.product.img1} alt={item.product.name} style={{ width: '80px' }} />
-            <button className="btn btn-danger btn-sm" onClick={() => handleRemove(item.id)}>
-              Remove
-            </button>
-          </li>
+          </motion.div>
         ))}
-      </ul>
-      <h4>Total: ₹{total}</h4>
-      <button className="btn btn-warning" onClick={handleClear}>Clear Cart</button>
-    </div>
+      </AnimatePresence>
+
+      <div className="card mt-4">
+        <div className="card-body">
+          <h4 className="card-title">Total: ₹{total}</h4>
+          <button className="btn btn-warning" onClick={handleClear}>
+            Clear Cart
+          </button>
+          <button className="btn btn-success ms-3" onClick={handleCheckout}>
+            Checkout
+          </button>
+        </div>
+      </div>
+      <ToastContainer />
+    </motion.div>
   );
 }
 

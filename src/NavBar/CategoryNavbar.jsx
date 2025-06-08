@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { FaSearch, FaShoppingBag, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { FaSearch, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import styles from '../NavBar/CategoryNavbar.module.css';
 import { Link } from "react-router-dom";
+import AnimatedCartCounter from "../components/AnimatedCartCounter";
 
 const CategoryNavbar = () => {
   const [hoveredCategory, setHoveredCategory] = useState(null);
@@ -90,12 +91,7 @@ const CategoryNavbar = () => {
 
         <div className="d-flex align-items-center gap-4">
           <FaSearch size={20} className="cursor-pointer" />
-          <div className="position-relative">
-            <FaShoppingBag size={20} />
-            <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-              0
-            </span>
-          </div>
+          <AnimatedCartCounter className={styles.cartIcon} />
         </div>
       </div>
     </nav>

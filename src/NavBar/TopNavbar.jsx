@@ -31,10 +31,10 @@ const TopNavbar = () => {
           return res.text();
         })
         .then((roleFromApi) => {
-          const normalizedRole = roleFromApi.toUpperCase(); // 🔥 Normalize role
+          const normalizedRole = roleFromApi.toUpperCase();
           localStorage.setItem("role", normalizedRole);
           setRole(normalizedRole);
-          console.log("Role fetched and set:", normalizedRole); // ✅ Debug
+          console.log("Role fetched and set:", normalizedRole);
         })
         .catch((err) => {
           console.error("Error fetching role:", err);
@@ -53,24 +53,24 @@ const TopNavbar = () => {
     localStorage.removeItem("role");
     setUsername(null);
     setRole(null);
+    // Trigger custom event to notify CartContext of user logout
+    window.dispatchEvent(new CustomEvent('userChanged', { detail: { email: null } }));
     navigate("/login", { replace: true });
   };
 
   const handleLogoClick = (e) => {
     e.preventDefault();
-   console.log("Redirecting based on role:", role); // ✅ Debug
-if (role && role.toUpperCase() === "ADMIN") {
-  navigate("/adminHome");
-} else {
-  navigate("/home");
-}
-
+    console.log("Redirecting based on role:", role);
+    if (role && role.toUpperCase() === "ADMIN") {
+      navigate("/adminHome");
+    } else {
+      navigate("/home");
+    }
   };
 
   return (
     <div className="border-bottom shadow-sm bg-white">
       <nav className="container-fluid d-flex justify-content-between align-items-center py-2 px-4">
-
         {/* Logo Center */}
         <div className="text-center flex-grow-1">
           <a

@@ -1,15 +1,26 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import "aos/dist/aos.css";
 import ImageCarousel from "../Carousel Component/ImageCarousel";
 import Footer from "../footer/Footer";
 import Aos from "aos";
 
 const Home = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
     Aos.init({
       duration: 1000,
       once: true,
     });
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    handleResize(); // Initial check
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return (
@@ -42,16 +53,36 @@ const Home = () => {
         </video>
       </div>
 
-      {/* Side-by-side full-height images */}
-      <div style={{ width: "100%", display: "flex", flexWrap: "revert" }}>
-        <div style={{ height: "120vh", overflow: "hidden" }} data-aos="fade-right">
+      {/* Side-by-side full-height images with responsive animation */}
+      <div
+        style={{
+          width: "100%",
+          display: "flex",
+          flexWrap: isMobile ? "wrap" : "nowrap"
+        }}
+      >
+        <div
+          style={{
+            height: "120vh",
+            overflow: "hidden",
+            flex: "1 1 100%"
+          }}
+          data-aos={isMobile ? "fade-up" : "fade-right"}
+        >
           <img
             src="https://redtape.com/cdn/shop/files/1000x900-1_08f1e2ae-9972-4736-aece-62bf8e3159ba.webp?v=1741691932"
             alt="Performance"
             style={{ width: "auto", height: "100%", objectFit: "cover" }}
           />
         </div>
-        <div style={{ height: "120vh", overflow: "hidden" }} data-aos="fade-left">
+        <div
+          style={{
+            height: "120vh",
+            overflow: "hidden",
+            flex: "1 1 100%"
+          }}
+          data-aos={isMobile ? "fade-down" : "fade-left"}
+        >
           <img
             src="https://redtape.com/cdn/shop/files/600x900-1.webp?v=1741691935"
             alt="Casual Sway"
@@ -60,7 +91,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* After the side-by-side image section */}
       <div className="my-4 text-center" data-aos="fade-up">
         <img
           src="https://redtape.com/cdn/shop/files/1600x300-angie_capphoto_0b03f481-b866-420f-8c71-cce65abfee43.webp?v=1741692046"
@@ -149,4 +179,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Home;

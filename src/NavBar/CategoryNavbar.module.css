@@ -31,3 +31,12 @@
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
+
+.cartIcon {
+  transition: transform 0.2s ease-in-out;
+}
+
+.cartIcon:hover {
+  transform: scale(1.1);
+  color: #dc3545;
+}
