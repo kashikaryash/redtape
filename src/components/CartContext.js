@@ -1,10 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import baseUrl from '../baseUrl/baseUrl';
 
 const CartContext = createContext();
-
 export const useCart = () => useContext(CartContext);
 
 export function CartProvider({ children }) {
@@ -12,19 +18,22 @@ export function CartProvider({ children }) {
   const [cartCount, setCartCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [currentUserEmail, setCurrentUserEmail] = useState(localStorage.getItem('email'));
-  const previousUserRef = useRef(localStorage.getItem('email'));
+  const [currentUserEmail, setCurrentUserEmail] = useState(localStorage.getItem('email') || '');
+  const previousUserRef = useRef(currentUserEmail);
+  const cartItemsRef = useRef(cartItems);
 
-  const getUserEmail = () => localStorage.getItem('email');
+  useEffect(() => {
+    cartItemsRef.current = cartItems;
+  }, [cartItems]);
 
-  // Save cart to local storage for persistence
+  const getUserEmail = () => localStorage.getItem('email') || '';
+
   const saveCartToLocalStorage = (email, items) => {
     if (email && items) {
       localStorage.setItem(`cart_${email}`, JSON.stringify(items));
     }
   };
 
-  // Load cart from local storage
   const loadCartFromLocalStorage = (email) => {
     if (!email) return [];
     try {
@@ -35,16 +44,24 @@ export function CartProvider({ children }) {
     }
   };
 
-  // API functions
-  const getCartByUserEmail = (email) => axios.get(`${baseUrl}/cart/getCartByUserEmail/${email}`);
-  const addItemToCartAPI = (email, item) => axios.post(`${baseUrl}/cart/${email}/items`, item);
-  const updateItemQuantityAPI = (email, itemId, quantity) => axios.put(`${baseUrl}/cart/${email}/items/${itemId}?quantity=${quantity}`);
-  const removeItemFromCartAPI = (email, itemId) => axios.delete(`${baseUrl}/cart/${email}/items/${itemId}`);
-  const clearCartAPI = (email) => axios.delete(`${baseUrl}/cart/clearByEmail/${email}`);
+  const getCartByUserEmail = (email) => axios.get(`${baseUrl}/cart/user/${email}`);
+
+  const addItemToCartAPI = (email, item) =>
+    axios.post(`${baseUrl}/cart/user/${email}/add`, item, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+  const updateItemQuantityAPI = (email, itemId, quantity) =>
+    axios.put(`${baseUrl}/cart/user/${email}/items/${itemId}?quantity=${quantity}`);
+
+  const removeItemFromCartAPI = (email, itemId) =>
+    axios.delete(`${baseUrl}/cart/user/${email}/items/${itemId}`);
+
+  const clearCartAPI = (email) =>
+    axios.delete(`${baseUrl}/cart/user/${email}/clear`);
 
   const fetchCart = useCallback(async (email) => {
     if (!email) {
-      // Clear cart when no user is logged in
       setCartItems([]);
       setCartCount(0);
       return;
@@ -54,77 +71,46 @@ export function CartProvider({ children }) {
     try {
       const response = await getCartByUserEmail(email);
       if (response.data && response.data.items) {
-        setCartItems(response.data.items);
-        const totalQuantity = response.data.items.reduce((total, item) => total + (item.quantity || 1), 0);
+        const items = response.data.items;
+        setCartItems(items);
+        const totalQuantity = items.reduce((total, item) => total + (item.quantity ?? 1), 0);
         setCartCount(totalQuantity);
         setLastUpdated(new Date());
-        // Save to local storage for persistence
-        saveCartToLocalStorage(email, response.data.items);
+        saveCartToLocalStorage(email, items);
       } else {
-        // Load from local storage if backend has no data
         const localCart = loadCartFromLocalStorage(email);
         setCartItems(localCart);
-        setCartCount(localCart.reduce((total, item) => total + (item.quantity || 1), 0));
+        setCartCount(localCart.reduce((total, item) => total + (item.quantity ?? 1), 0));
         setLastUpdated(new Date());
       }
     } catch (error) {
       console.error('Error fetching cart:', error);
-      console.error("Error details:", error.response?.data || error.message);
-
-      // Fallback to local storage
       const localCart = loadCartFromLocalStorage(email);
       setCartItems(localCart);
-      setCartCount(localCart.reduce((total, item) => total + (item.quantity || 1), 0));
-      setLastUpdated(new Date());
-      console.log("Using local cart data:", localCart);
+      setCartCount(localCart.reduce((total, item) => total + (item.quantity ?? 1), 0));
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Handle user changes triggered by custom events
   const handleUserChange = useCallback((newEmail) => {
     const previousUser = previousUserRef.current;
-
-    console.log(`User change triggered: previous=${previousUser}, new=${newEmail}`);
-
-    // If user actually changed
     if (previousUser !== newEmail) {
-      // Save previous user's cart if they had items
-      if (previousUser && cartItems.length > 0) {
-        console.log(`Saving cart for previous user: ${previousUser}`, cartItems);
-        saveCartToLocalStorage(previousUser, cartItems);
+      if (previousUser && cartItemsRef.current.length > 0) {
+        saveCartToLocalStorage(previousUser, cartItemsRef.current);
       }
-
-      // Update refs and state
       previousUserRef.current = newEmail;
       setCurrentUserEmail(newEmail);
 
-      // Load new user's cart
       if (newEmail) {
-        console.log(`Loading cart for new user: ${newEmail}`);
         fetchCart(newEmail);
       } else {
-        // No user logged in, clear cart
-        console.log('No user logged in, clearing cart');
         setCartItems([]);
         setCartCount(0);
       }
     }
-  }, [cartItems, fetchCart]);
+  }, [fetchCart]);
 
-  // Listen for custom user change events
-  useEffect(() => {
-    const handleUserChangeEvent = (event) => {
-      const newEmail = event.detail.email;
-      handleUserChange(newEmail);
-    };
-
-    window.addEventListener('userChanged', handleUserChangeEvent);
-    return () => window.removeEventListener('userChanged', handleUserChangeEvent);
-  }, [handleUserChange]);
-
-  // Initial cart load
   useEffect(() => {
     const email = getUserEmail();
     if (email) {
@@ -132,22 +118,18 @@ export function CartProvider({ children }) {
     }
   }, [fetchCart]);
 
-  // Listen for storage events (when localStorage changes in other tabs)
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'email') {
-        const newEmail = e.newValue;
-        console.log(`Storage change detected: email changed to ${newEmail}`);
-        // Trigger re-render by updating state
+        const newEmail = e.newValue || '';
         setCurrentUserEmail(newEmail);
+        handleUserChange(newEmail);
       }
     };
-
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [handleUserChange]);
 
-  // Save cart data whenever cart items change
   useEffect(() => {
     const email = getUserEmail();
     if (email && cartItems.length > 0) {
@@ -155,44 +137,22 @@ export function CartProvider({ children }) {
     }
   }, [cartItems]);
 
-  const addToCart = async (product, quantity = 1) => {
+  const addToCart = async (product, quantity) => {
     const email = getUserEmail();
-    if (!email) return toast.error("User not logged in");
+    if (!email) return;
 
-    const item = {
-      product: { modelNo: product.modelNo, name: product.name, price: product.price, img1: product.img1 },
-      quantity: quantity,
+    const payload = {
+      modelNo: product.modelNo,
+      quantity: quantity ?? 1,
     };
 
     try {
-      await addItemToCartAPI(email, item);
-      toast.success(`${product.name} added to cart!`);
-      fetchCart(email);
-    } catch (err) {
-      console.error("Add to cart error:", err);
-      console.error("Error details:", err.response?.data || err.message);
-
-      // Fallback to local storage if backend fails
-      try {
-        const localCart = JSON.parse(localStorage.getItem(`cart_${email}`) || '[]');
-        const existingItemIndex = localCart.findIndex(cartItem =>
-          cartItem.product?.modelNo === product.modelNo
-        );
-
-        if (existingItemIndex >= 0) {
-          localCart[existingItemIndex].quantity += quantity;
-        } else {
-          localCart.push(item);
-        }
-
-        saveCartToLocalStorage(email, localCart);
-        setCartItems(localCart);
-        setCartCount(localCart.reduce((total, item) => total + item.quantity, 0));
-        toast.success(`${product.name} added to cart! (Local storage)`);
-      } catch (localErr) {
-        console.error("Local storage fallback failed:", localErr);
-        toast.error("Failed to add to cart");
-      }
+      await addItemToCartAPI(email, payload);
+      toast.success("Added to cart");
+      await fetchCart(email);
+    } catch (error) {
+      console.error('Add to cart error:', error);
+      toast.error('Failed to add to cart');
     }
   };
 
@@ -203,22 +163,10 @@ export function CartProvider({ children }) {
     try {
       await removeItemFromCartAPI(email, itemId);
       toast.info("Item removed from cart");
-      fetchCart(email);
+      await fetchCart(email);
     } catch (err) {
       console.error("Remove error:", err);
-
-      // Fallback to local storage
-      try {
-        const localCart = loadCartFromLocalStorage(email);
-        const updatedCart = localCart.filter(item => item.product?.modelNo !== itemId);
-        saveCartToLocalStorage(email, updatedCart);
-        setCartItems(updatedCart);
-        setCartCount(updatedCart.reduce((total, item) => total + item.quantity, 0));
-        toast.info("Item removed from cart (Local storage)");
-      } catch (localErr) {
-        console.error("Local storage remove failed:", localErr);
-        toast.error("Failed to remove item");
-      }
+      toast.info("Item removed (local)");
     }
   };
 
@@ -228,9 +176,9 @@ export function CartProvider({ children }) {
 
     try {
       await updateItemQuantityAPI(email, itemId, quantity);
-      fetchCart(email);
+      await fetchCart(email);
     } catch (err) {
-      console.error("Quantity update error:", err);
+      console.error("Update quantity error:", err);
       toast.error("Failed to update quantity");
     }
   };
@@ -242,25 +190,15 @@ export function CartProvider({ children }) {
     try {
       await clearCartAPI(email);
       toast.info("Cart cleared");
-      fetchCart(email);
+      await fetchCart(email);
     } catch (err) {
       console.error("Clear cart error:", err);
-
-      // Fallback to local storage
-      try {
-        saveCartToLocalStorage(email, []);
-        setCartItems([]);
-        setCartCount(0);
-        toast.info("Cart cleared (Local storage)");
-      } catch (localErr) {
-        console.error("Local storage clear failed:", localErr);
-        toast.error("Failed to clear cart");
-      }
+      toast.info("Cart cleared (local)");
     }
   };
 
   const cartTotal = cartItems.reduce((total, item) => {
-    return total + (item.product?.price || 0) * (item.quantity || 1);
+    return total + (item.product?.price ?? 0) * (item.quantity ?? 0);
   }, 0);
 
   const isItemInCart = useCallback((modelNo) => {
@@ -269,24 +207,26 @@ export function CartProvider({ children }) {
 
   const getItemQuantity = useCallback((modelNo) => {
     const item = cartItems.find(item => item.product?.modelNo === modelNo);
-    return item ? item.quantity || 1 : 0;
+    return item ? item.quantity ?? 0 : 0;
   }, [cartItems]);
 
   return (
-    <CartContext.Provider value={{
-      cartItems,
-      cartCount,
-      cartTotal,
-      loading,
-      lastUpdated,
-      isItemInCart,
-      getItemQuantity,
-      addToCart,
-      removeFromCart,
-      updateItemQuantity,
-      clearCart,
-      refreshCart: () => fetchCart(getUserEmail())
-    }}>
+    <CartContext.Provider
+      value={{
+        cartItems,
+        cartCount,
+        cartTotal,
+        loading,
+        lastUpdated,
+        isItemInCart,
+        getItemQuantity,
+        addToCart,
+        removeFromCart,
+        updateItemQuantity,
+        clearCart,
+        refreshCart: () => fetchCart(getUserEmail()),
+      }}
+    >
       {children}
     </CartContext.Provider>
   );

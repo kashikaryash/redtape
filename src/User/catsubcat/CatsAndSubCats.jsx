@@ -63,7 +63,7 @@ function CatsAndSubCats() {
             <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
               {products.map((product) => (
                 <motion.div
-                  key={product.id}
+                  key={product.modelNo}
                   className="col"
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}

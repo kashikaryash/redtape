@@ -1,0 +1,25 @@
+.cartContainer {
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.cartItem {
+  transition: transform 0.2s ease;
+}
+
+.cartItem:hover {
+  transform: scale(1.01);
+}
+
+.cartImage {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.removeBtn {
+  white-space: nowrap;
+}
