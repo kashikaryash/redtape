@@ -36,11 +36,11 @@ function CatsAndSubCats() {
     }
 
     try {
-      // Use CartContext's addToCart function for consistency
       await addToCart(product, 1);
       console.log("Successfully added to cart via CartContext");
     } catch (error) {
       console.error('Error updating cart:', error);
+      console.error('Error response:', error.response?.data); // 👈 This logs the backend's error message
       toast.error('Failed to add product to cart', {
         position: "top-right",
         autoClose: 3000,

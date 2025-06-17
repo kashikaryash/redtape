@@ -1,58 +1,43 @@
 import React, { useState } from 'react';
 import { useCart } from "../components/CartContext";
 import { motion } from 'framer-motion';
-import { FaShoppingCart, FaEye, FaHeart, FaCheck } from 'react-icons/fa';
+import { FaShoppingCart, FaEye, FaHeart, FaTrash } from 'react-icons/fa';
 
-function ProductCard({ product, onViewDetails, onAddToCart }) {
+function ProductCard({ product, onViewDetails }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [isAdded, setIsAdded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const { isItemInCart, getItemQuantity } = useCart();
+  const { isItemInCart, getItemQuantity, addToCart, removeFromCart } = useCart();
 
-  // Check if product is already in cart
   const isInCart = isItemInCart(product.modelNo);
   const itemQuantity = getItemQuantity(product.modelNo);
 
-  const handleAddToCart = async () => {
-    console.log("🎯 ProductCard handleAddToCart called");
-    console.log("🔍 Current state:", { isLoading, isInCart, itemQuantity });
-
-    if (isLoading || isInCart) {
-      console.log("⏸️ Add to cart blocked:", { isLoading, isInCart });
-      return;
-    }
+  const handleToggleCart = async () => {
+    if (isLoading) return;
 
     setIsLoading(true);
-    console.log("⏳ Setting loading state to true");
-
     try {
-      console.log("🚀 Calling onAddToCart function");
-      await onAddToCart();
-      console.log("✅ onAddToCart completed successfully");
-
-      setIsAdded(true);
-      setTimeout(() => setIsAdded(false), 2000); // Reset after 2 seconds
+      if (isInCart) {
+        await removeFromCart(product.modelNo);
+      } else {
+        await addToCart(product,1);
+      }
     } catch (error) {
-      console.error('❌ Error in ProductCard handleAddToCart:', error);
+      console.error('🛑 Cart operation failed:', error);
     } finally {
       setIsLoading(false);
-      console.log("✅ Loading state set to false");
     }
   };
 
-  const handleImageError = () => {
-    setImageError(true);
-  };
+  const handleImageError = () => setImageError(true);
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-IN', {
+  const formatPrice = (price) =>
+    new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(price);
-  };
 
   return (
     <motion.div
@@ -85,7 +70,7 @@ function ProductCard({ product, onViewDetails, onAddToCart }) {
         style={{ zIndex: 2, width: '40px', height: '40px' }}
         onClick={(e) => {
           e.stopPropagation();
-          // Add wishlist functionality here
+          console.log("❤️ Wishlist functionality goes here");
         }}
       >
         <FaHeart className="text-muted" size={14} />
@@ -98,10 +83,7 @@ function ProductCard({ product, onViewDetails, onAddToCart }) {
             src={product.img1}
             className="card-img-top w-100 h-100"
             alt={product.name}
-            style={{
-              objectFit: 'contain',
-              transition: 'transform 0.3s ease'
-            }}
+            style={{ objectFit: 'contain', transition: 'transform 0.3s ease' }}
             onError={handleImageError}
             onMouseEnter={(e) => {
               if (isHovered) e.target.style.transform = 'scale(1.05)';
@@ -139,12 +121,12 @@ function ProductCard({ product, onViewDetails, onAddToCart }) {
             <FaEye />
           </button>
           <button
-            className={`btn rounded-circle ${isInCart ? 'btn-success' : 'btn-primary'}`}
+            className={`btn rounded-circle ${isInCart ? 'btn-danger' : 'btn-primary'}`}
             onClick={(e) => {
               e.stopPropagation();
-              handleAddToCart();
+              handleToggleCart();
             }}
-            disabled={isLoading || isInCart}
+            disabled={isLoading}
             style={{ width: '50px', height: '50px' }}
           >
             {isLoading ? (
@@ -152,7 +134,7 @@ function ProductCard({ product, onViewDetails, onAddToCart }) {
                 <span className="visually-hidden">Loading...</span>
               </div>
             ) : isInCart ? (
-              <FaCheck />
+              <FaTrash />
             ) : (
               <FaShoppingCart />
             )}
@@ -160,7 +142,7 @@ function ProductCard({ product, onViewDetails, onAddToCart }) {
         </motion.div>
       </div>
 
-      {/* Product Details */}
+      {/* Product Info */}
       <div className="card-body d-flex flex-column">
         <h5 className="card-title text-truncate" title={product.name}>
           {product.name}
@@ -169,64 +151,53 @@ function ProductCard({ product, onViewDetails, onAddToCart }) {
           {product.description}
         </p>
 
-        {/* Price Section */}
-        <div className="mb-3">
-          <div className="d-flex align-items-center gap-2">
-            <span className="h5 text-success fw-bold mb-0">
-              {formatPrice(product.price)}
-            </span>
-            {product.originalPrice && product.originalPrice > product.price && (
-              <>
-                <span className="text-muted text-decoration-line-through small">
-                  {formatPrice(product.originalPrice)}
-                </span>
-                <span className="badge bg-danger">
-                  {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
-                </span>
-              </>
-            )}
-          </div>
+        {/* Pricing */}
+        <div className="mb-3 d-flex align-items-center gap-2">
+          <span className="h5 text-success fw-bold mb-0">{formatPrice(product.price)}</span>
+          {product.originalPrice && product.originalPrice > product.price && (
+            <>
+              <span className="text-muted text-decoration-line-through small">
+                {formatPrice(product.originalPrice)}
+              </span>
+              <span className="badge bg-danger">
+                {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+              </span>
+            </>
+          )}
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-auto">
-          <div className="d-grid gap-2">
-            <button
-              className={`btn ${isInCart ? 'btn-success' : 'btn-danger'} position-relative`}
-              onClick={handleAddToCart}
-              disabled={isLoading || isInCart}
-            >
-              {isLoading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Adding...
-                </>
-              ) : isInCart ? (
-                <>
-                  <FaCheck className="me-2" />
-                  Added to Cart
-                </>
-              ) : isAdded ? (
-                <>
-                  <FaCheck className="me-2" />
-                  Added!
-                </>
-              ) : (
-                <>
-                  <FaShoppingCart className="me-2" />
-                  Add to Cart
-                </>
-              )}
-            </button>
+        <div className="mt-auto d-grid gap-2">
+          <button
+            className={`btn ${isInCart ? 'btn-outline-danger' : 'btn-danger'}`}
+            onClick={handleToggleCart}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                {isInCart ? 'Removing...' : 'Adding...'}
+              </>
+            ) : isInCart ? (
+              <>
+                <FaTrash className="me-2" />
+                Remove from Cart
+              </>
+            ) : (
+              <>
+                <FaShoppingCart className="me-2" />
+                Add to Cart
+              </>
+            )}
+          </button>
 
-            <button
-              className="btn btn-outline-secondary btn-sm"
-              onClick={onViewDetails}
-            >
-              <FaEye className="me-1" />
-              View Details
-            </button>
-          </div>
+          <button
+            className="btn btn-outline-secondary btn-sm"
+            onClick={onViewDetails}
+          >
+            <FaEye className="me-1" />
+            View Details
+          </button>
         </div>
       </div>
     </motion.div>

@@ -1,5 +1,5 @@
 import './App.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LoginPage from './LoginSignup/LoginPage';
 import SignUp from './LoginSignup/SignUp';
 import TopNavbar from './NavBar/TopNavbar';
@@ -16,12 +16,12 @@ import ProductDetailPage from './User/catsubcat/ProductDetailPage.jsx';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { CartProvider } from './components/CartContext.js';
 import CartPage from './components/CartPage.jsx';
+import CheckoutPage from './components/CheckoutPage.jsx';
+import OrdersPage from './components/OrdersPage.jsx';
 import ContactUs from './ContactUs/ContactUs.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import CategoryNavbar from './NavBar/CategoryNavbar.jsx';
 import { ToastProvider } from './components/ToastManager.jsx';
-import BackendTest from './components/BackendTest.jsx';
-import CartTest from './components/CartTest.jsx';
 import ForgotPassword from './LoginSignup/ForgotPassword.jsx';
 
 function App() {
@@ -30,7 +30,7 @@ function App() {
   return (
     <div className="App">
       <CartProvider>
-        <Router>
+        <BrowserRouter>
           <ToastProvider>
           {!isMainNavVisible && (
             <>
@@ -60,10 +60,22 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/home" element={<Home />} />
-             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
             <Route path="/allProducts" element={<AllProducts />} />
             <Route path="/cat/:cat/:subcategory" element={<CatsAndSubCats />} />
+
+            {/* Cart and Checkout Routes */}
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route 
+              path="/orders" 
+              element={
+                <ProtectedRoute>
+                  <OrdersPage />
+                </ProtectedRoute>
+              } 
+            />
 
             <Route
               path="/adminHome"
@@ -98,16 +110,15 @@ function App() {
               }
             />
             <Route path="/products/:modelNo" element={<ProductDetailPage />} />
-            <Route path="/cart" element={<CartPage />} />
             <Route path="/contactUs" element={<ContactUs />} />
-            <Route path="/test" element={<BackendTest />} />
-            <Route path="/cart-test" element={<CartTest />} />
+
           </Routes>
           </ToastProvider>
-        </Router>
+        </BrowserRouter>
       </CartProvider>
     </div>
   );
 }
 
 export default App;
+
